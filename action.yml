@@ -1,0 +1,36 @@
+name: AI Readiness Score
+description: Score how ready a repository is for AI-assisted development, using the AI-FLOSS readiness checks.
+author: AI-FLOSS
+branding:
+  icon: check-circle
+  color: green
+
+inputs:
+  repository:
+    description: Repository to score, as owner/name.
+    default: ${{ github.repository }}
+  min-score:
+    description: Fail the step if the score is below this number (0 to 4).
+    default: '0'
+  token:
+    description: GitHub token used to read the repository.
+    default: ${{ github.token }}
+
+outputs:
+  score:
+    description: The score, from 0 to 4.
+    value: ${{ steps.score.outputs.score }}
+  result:
+    description: The full result as JSON, with the evidence for each check.
+    value: ${{ steps.score.outputs.result }}
+
+runs:
+  using: composite
+  steps:
+    - id: score
+      shell: bash
+      run: node "$GITHUB_ACTION_PATH/src/action.mjs"
+      env:
+        INPUT_REPOSITORY: ${{ inputs.repository }}
+        INPUT_MIN_SCORE: ${{ inputs.min-score }}
+        INPUT_TOKEN: ${{ inputs.token }}
