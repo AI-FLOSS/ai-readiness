@@ -1,5 +1,7 @@
 # ai-readiness
 
+[![AI readiness](https://img.shields.io/endpoint?url=https://ai-floss.github.io/badges/AI-FLOSS/ai-readiness.json)](https://ai-floss.github.io/guidelines/readiness/)
+
 Score how ready an open source repository is for AI-assisted development.
 
 The [AI Readiness Score](https://ai-floss.github.io/guidelines/readiness/) has four checks, one
@@ -44,6 +46,12 @@ repository scores below `N`.
 
 The action writes the result to the job summary and sets the `score` and `result` outputs. It scores
 the current repository unless you set `repository: owner/name`.
+
+## Badge
+
+Projects listed on [Awesome AI-FLOSS](https://ai-floss.github.io/awesome/) and AI-FLOSS
+repositories get a weekly-updated shields.io badge; see
+[Add a badge](https://ai-floss.github.io/guidelines/readiness/#add-a-badge).
 
 ## As a library
 
