@@ -11,9 +11,10 @@ console.log(markdown);
 if (GITHUB_STEP_SUMMARY) appendFileSync(GITHUB_STEP_SUMMARY, `${markdown}\n`);
 if (GITHUB_OUTPUT) {
 	appendFileSync(GITHUB_OUTPUT, `score=${r.score}\n`);
+	appendFileSync(GITHUB_OUTPUT, `total=${r.total}\n`);
 	appendFileSync(GITHUB_OUTPUT, `result=${JSON.stringify(r)}\n`);
 }
 if (r.score < Number(min)) {
-	console.log(`::error::AI Readiness Score ${r.score}/4 is below the minimum of ${min}.`);
+	console.log(`::error::AI Readiness Score ${r.score}/${r.total} is below the minimum of ${min}.`);
 	process.exit(1);
 }

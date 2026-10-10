@@ -10,7 +10,7 @@ inputs:
     description: Repository to score, as owner/name.
     default: ${{ github.repository }}
   min-score:
-    description: Fail the step if the score is below this number (0 to 4).
+    description: Fail the step if the score is below this number (0 to 8).
     default: '0'
   token:
     description: GitHub token used to read the repository.
@@ -18,8 +18,11 @@ inputs:
 
 outputs:
   score:
-    description: The score, from 0 to 4.
+    description: The number of checks passed.
     value: ${{ steps.score.outputs.score }}
+  total:
+    description: The number of checks.
+    value: ${{ steps.score.outputs.total }}
   result:
     description: The full result as JSON, with the evidence for each check.
     value: ${{ steps.score.outputs.result }}

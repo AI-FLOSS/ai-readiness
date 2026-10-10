@@ -16,11 +16,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Check formatting
+        run: npm run lint
       - name: Run tests
         run: npm test
       - name: Score this repository with the action
         id: readiness
         uses: ./
         with:
-          min-score: 4
+          min-score: 6
       - run: echo "Scored ${{ steps.readiness.outputs.score }}/4"

@@ -31,7 +31,13 @@ const NOT_CODE = /(^|\/)\.|\.(md|mdx|txt|json|ya?ml)$/i;
 const TEST_COMMAND = /run:.*\b(test|tests|pytest|jest|vitest|nextest|ctest|tox|nox|rspec|phpunit|check)\b|uses:.*test/i;
 const OTHER_CI = [/^\.circleci\//, /^\.buildkite\//, /^\.gitlab-ci\.yml$/, /^\.travis\.yml$/, /^\.cirrus\.yml$/, /^\.woodpecker/];
 
-const REVIEW_FILES = [/^\.coderabbit\.ya?ml$/, /^\.gemini\/config\.ya?ml$/, /^\.sourcery\.ya?ml$/, /^\.pr_agent\.toml$/, /^greptile\.json$/];
+const REVIEW_FILES = [
+	/^\.coderabbit\.ya?ml$/,
+	/^\.gemini\/config\.ya?ml$/,
+	/^\.sourcery\.ya?ml$/,
+	/^\.pr_agent\.toml$/,
+	/^greptile\.json$/,
+];
 const REVIEW_ACTIONS =
 	/anthropics\/claude-code-action|openai\/codex-action|run-gemini-cli|coderabbitai\/|pr-agent|sourcery-ai\/|ai-code-review/i;
 export const REVIEW_BOTS = new Set([
@@ -63,7 +69,11 @@ export const mentionsAiUse = (text) => AI_HEADING.test(text ?? '');
 export const agentFile = (paths) => first(paths, AGENT_FILES);
 
 /** The first test file that is code rather than documentation, if any. */
-export const testFile = (paths) => first(paths.filter((p) => !NOT_CODE.test(p)), TEST_FILES);
+export const testFile = (paths) =>
+	first(
+		paths.filter((p) => !NOT_CODE.test(p)),
+		TEST_FILES,
+	);
 
 /**
  * The CI configuration that runs tests on pull requests, if any.
@@ -72,9 +82,7 @@ export const testFile = (paths) => first(paths.filter((p) => !NOT_CODE.test(p)),
  */
 export function ciConfig(paths, workflows) {
 	const onPr = workflows.filter(([, text]) => /pull_request/.test(text));
-	return (
-		onPr.find(([p]) => /test/i.test(p))?.[0] ?? onPr.find(([, text]) => TEST_COMMAND.test(text))?.[0] ?? first(paths, OTHER_CI)
-	);
+	return onPr.find(([p]) => /test/i.test(p))?.[0] ?? onPr.find(([, text]) => TEST_COMMAND.test(text))?.[0] ?? first(paths, OTHER_CI);
 }
 
 /** An AI reviewer's config file or a workflow that runs an AI review, if any. */
@@ -83,3 +91,69 @@ export const reviewConfig = (paths, workflows) =>
 
 /** The first comment left by a known AI review bot, if any. */
 export const reviewBotComment = (comments) => comments.find((c) => REVIEW_BOTS.has(c.user?.login));
+
+const ENV_FILES = [
+	/^\.devcontainer(\.json$|\/)/,
+	/^flake\.nix$/,
+	/^shell\.nix$/,
+	/^default\.nix$/,
+	/^devenv\.nix$/,
+	/^devbox\.json$/,
+	/^(Dockerfile|Containerfile)(\.dev)?$/,
+	/^\.gitpod\.yml$/,
+	/^pixi\.toml$/,
+	/^\.?mise\.toml$/,
+	/^\.tool-versions$/,
+];
+
+/** The first file that sets up a reproducible development environment, if any. */
+export const environmentFile = (paths) => first(paths, ENV_FILES);
+
+const QUALITY_COMMAND =
+	/\b(lint|eslint|ruff|clippy|golangci-lint|biome|prettier|cargo fmt|gofmt|black|mypy|pyright|tsc|typecheck|type-check|shellcheck|rubocop|pre-commit|stylelint|ktlint|swiftlint|dprint)\b/i;
+
+/** A pull request workflow that runs a linter, type checker or formatter, if any. */
+export function qualityGate(paths, workflows) {
+	const onPr = workflows.filter(([, text]) => /pull_request/.test(text));
+	return (
+		onPr.find(([p]) => /lint|format|typecheck|check/i.test(p))?.[0] ??
+		onPr.find(([, text]) => text.split('\n').some((l) => /^\s*(-\s*)?(run|uses):/.test(l) && QUALITY_COMMAND.test(l)))?.[0] ??
+		first(paths, [/^\.pre-commit-config\.ya?ml$/])
+	);
+}
+
+const AI_TRAILER =
+	/^(Assisted-by|Generated-by|AI-assisted-by|Co-authored-by):.*(claude|anthropic|copilot|openai|gpt|codex|gemini|cursor|aider|openhands|devin|llm|\bAI\b)/im;
+
+/** Commits whose message carries an AI disclosure trailer. */
+export const disclosedCommits = (commits) => commits.filter((c) => AI_TRAILER.test(c.commit?.message ?? ''));
+
+/** Pull requests whose description has a ticked box in an AI section, including a ticked "None". */
+export function disclosedPullRequests(pulls) {
+	return pulls.filter((p) => {
+		const body = p.body ?? '';
+		const section = body.search(new RegExp(String.raw`^#{1,6}.*${AI_TERM}`, 'mi'));
+		return section >= 0 && /^\s*[-*] \[[xX]\]/m.test(body.slice(section));
+	});
+}
+
+/**
+ * The protection on the default branch that requires checks or review before merging, if any.
+ * @param {{ type: string }[]} rules active rules from the rulesets API
+ * @param {object} branch the branch from the branches API
+ */
+export function branchProtection(rules, branch) {
+	const rule = rules.find((r) => r.type === 'pull_request' || r.type === 'required_status_checks');
+	if (rule) return `ruleset requires ${rule.type.replace(/_/g, ' ')}`;
+	if (
+		branch?.protection?.required_status_checks?.enforcement_level &&
+		branch.protection.required_status_checks.enforcement_level !== 'off'
+	) {
+		return 'branch protection requires status checks';
+	}
+	return undefined;
+}
+
+/** A ruleset that requires an AI code review, if any. */
+export const reviewRule = (rules) =>
+	rules.some((r) => r.type === 'copilot_code_review') ? 'ruleset requires Copilot code review' : undefined;

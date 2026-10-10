@@ -1,14 +1,31 @@
 {
-  "name": "ai-readiness",
-  "version": "0.1.0",
-  "description": "Score how ready an open source repository is for AI-assisted development",
-  "type": "module",
-  "license": "MIT",
-  "bin": { "ai-readiness": "bin/ai-readiness.mjs" },
-  "exports": { ".": "./src/score.mjs", "./rules": "./src/rules.mjs" },
-  "files": ["bin", "src"],
-  "engines": { "node": ">=20" },
-  "scripts": { "test": "node --test" },
-  "repository": { "type": "git", "url": "git+https://github.com/AI-FLOSS/ai-readiness.git" },
-  "homepage": "https://ai-floss.github.io/guidelines/readiness/"
+	"name": "ai-readiness",
+	"version": "0.2.0",
+	"description": "Score how ready an open source repository is for AI-assisted development",
+	"type": "module",
+	"license": "MIT",
+	"bin": {
+		"ai-readiness": "bin/ai-readiness.mjs"
+	},
+	"exports": {
+		".": "./src/score.mjs",
+		"./rules": "./src/rules.mjs"
+	},
+	"files": [
+		"bin",
+		"src"
+	],
+	"engines": {
+		"node": ">=20"
+	},
+	"scripts": {
+		"test": "node --test",
+		"format": "npx -y prettier@3.9.9 --write .",
+		"lint": "npx -y prettier@3.9.9 --check ."
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/AI-FLOSS/ai-readiness.git"
+	},
+	"homepage": "https://ai-floss.github.io/guidelines/readiness/"
 }

@@ -5,6 +5,7 @@ import { formatMarkdown, formatText } from '../src/score.mjs';
 const result = {
 	repo: 'owner/repo',
 	score: 2,
+	total: 4,
 	checks: {
 		policy: { pass: true, evidence: 'AI_POLICY.md' },
 		agents: { pass: true, evidence: 'AGENTS.md' },
@@ -16,9 +17,13 @@ const result = {
 test('text output lists every check with its evidence', () => {
 	assert.equal(
 		formatText(result),
-		['owner/repo: 2/4', '  ✓ AI usage policy  (AI_POLICY.md)', '  ✓ Agent guidance files  (AGENTS.md)', '  ✗ Tests run in CI', '  ✗ AI-assisted review'].join(
-			'\n',
-		),
+		[
+			'owner/repo: 2/4',
+			'  ✓ AI usage policy  (AI_POLICY.md)',
+			'  ✓ Agent guidance files  (AGENTS.md)',
+			'  ✗ Tests run in CI',
+			'  ✗ AI-assisted review',
+		].join('\n'),
 	);
 });
 

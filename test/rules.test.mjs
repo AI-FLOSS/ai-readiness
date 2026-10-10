@@ -84,3 +84,55 @@ test('review: finds comments by known review bots only', () => {
 	assert.equal(rules.reviewBotComment(comments)?.user.login, 'coderabbitai[bot]');
 	assert.equal(rules.reviewBotComment(comments.slice(0, 2)), undefined);
 });
+
+test('environment: finds dev environment definitions at the root', () => {
+	for (const p of ['.devcontainer/devcontainer.json', '.devcontainer.json', 'flake.nix', 'Dockerfile', 'mise.toml', '.tool-versions']) {
+		assert.equal(rules.environmentFile([p]), p, p);
+	}
+	assert.equal(rules.environmentFile(['examples/flake.nix', 'deploy/Dockerfile', 'README.md']), undefined);
+});
+
+test('quality: finds lint, format or type checks on pull requests', () => {
+	assert.equal(rules.qualityGate([], [['.github/workflows/lint.yml', 'on: pull_request']]), '.github/workflows/lint.yml');
+	const ci = ['.github/workflows/ci.yml', 'on:\n  pull_request:\njobs:\n  x:\n    steps:\n      - run: npm run typecheck'];
+	assert.equal(rules.qualityGate([], [ci]), '.github/workflows/ci.yml');
+	assert.equal(rules.qualityGate(['.pre-commit-config.yaml'], []), '.pre-commit-config.yaml');
+});
+
+test('quality: ignores push-only workflows and mentions outside steps', () => {
+	assert.equal(rules.qualityGate([], [['.github/workflows/lint.yml', 'on: push']]), undefined);
+	const ci = ['.github/workflows/ci.yml', 'on: pull_request\nname: no lint here\nsteps:\n  - run: npm test'];
+	assert.equal(rules.qualityGate([], [ci]), undefined);
+});
+
+test('disclosure: counts commits with AI trailers', () => {
+	const commits = [
+		{ commit: { message: 'fix: x\n\nAssisted-by: Claude Code' } },
+		{ commit: { message: 'feat: y\n\nCo-authored-by: Claude <noreply@anthropic.com>' } },
+		{ commit: { message: 'docs: z\n\nCo-authored-by: Jane Doe <jane@example.com>' } },
+		{ commit: { message: 'chore: mention Claude in the body only' } },
+	];
+	assert.equal(rules.disclosedCommits(commits).length, 2);
+});
+
+test('disclosure: counts pull requests with a ticked box in an AI section', () => {
+	const pulls = [
+		{ body: '## What\nStuff\n\n## AI involvement\n\n- [x] None\n- [ ] Some' },
+		{ body: '## AI involvement\n\n- [ ] None\n- [ ] Some' },
+		{ body: '## Checklist\n\n- [x] Tests pass' },
+		{ body: null },
+	];
+	assert.equal(rules.disclosedPullRequests(pulls).length, 1);
+});
+
+test('protection: requires checks or review, not just blocked force pushes', () => {
+	assert.equal(rules.branchProtection([{ type: 'deletion' }, { type: 'pull_request' }], {}), 'ruleset requires pull request');
+	assert.equal(rules.branchProtection([{ type: 'non_fast_forward' }], { protected: true }), undefined);
+	const classic = { protection: { required_status_checks: { enforcement_level: 'everyone' } } };
+	assert.equal(rules.branchProtection([], classic), 'branch protection requires status checks');
+});
+
+test('review: a ruleset requiring Copilot review counts', () => {
+	assert.equal(rules.reviewRule([{ type: 'copilot_code_review' }]), 'ruleset requires Copilot code review');
+	assert.equal(rules.reviewRule([{ type: 'pull_request' }]), undefined);
+});
